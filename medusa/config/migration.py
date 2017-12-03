@@ -2,6 +2,8 @@
 
 """Migrates the config to the latest version."""
 
+from __future__ import unicode_literals
+
 import logging
 import os
 import re
@@ -38,7 +40,7 @@ class ConfigMigrator(object):
             6: 'Convert from XBMC to new KODI variables',
             7: 'Use version 2 for password encryption',
             8: 'Convert Plex setting keys',
-            9: 'Added setting "enable_manualsearch" for providers (dynamic setting)',
+            9: 'Added setting "enable_manualsearch" for providers',
             10: 'Convert all csv config items to lists'
         }
 
@@ -47,7 +49,7 @@ class ConfigMigrator(object):
 
         if self.config_version > self.expected_config_version:
             logger.log_error_and_exit(
-                u"""Your config version (%i) has been incremented past what this version of the application supports (%i).
+                """Your config version (%i) has been incremented past what this version of the application supports (%i).
                 If you have used other forks or a newer version of the application, your config file may be unusable due to their modifications.""" %
                 (self.config_version, self.expected_config_version)
             )
@@ -62,35 +64,35 @@ class ConfigMigrator(object):
             else:
                 migration_name = ''
 
-            log.info(u'Backing up config before upgrade')
+            log.info('Backing up config before upgrade')
             if not helpers.backup_versioned_file(app.CONFIG_FILE, self.config_version):
-                logger.log_error_and_exit(u'Config backup failed, abort upgrading config')
+                logger.log_error_and_exit('Config backup failed, abort upgrading config')
             else:
-                log.info(u'Proceeding with upgrade')
+                log.info('Proceeding with upgrade')
 
             # do the migration, expect a method named _migrate_v<num>
-                log.info(u'Migrating config up to version {version} {migration_name}',
+                log.info('Migrating config up to version {version} {migration_name}',
                          {'version': next_version, 'migration_name': migration_name})
             getattr(self, '_migrate_v' + str(next_version))()
             self.config_version = next_version
 
             # save new config after migration
             app.CONFIG_VERSION = self.config_version
-            log.info(u'Saving config file to disk')
+            log.info('Saving config file to disk')
             app.instance.save_config()
 
     def _migrate_v1(self):
         """Create config template from old naming settings."""
 
         app.NAMING_PATTERN = self._name_to_pattern()
-        log.info(u"Based on your old settings I'm setting your new naming pattern to: {pattern}",
+        log.info("Based on your old settings I'm setting your new naming pattern to: {pattern}",
                  {'pattern': app.NAMING_PATTERN})
 
         app.NAMING_CUSTOM_ABD = bool(check_setting_int(self.config_obj, 'General', 'naming_dates', 0))
 
         if app.NAMING_CUSTOM_ABD:
             app.NAMING_ABD_PATTERN = self._name_to_pattern(True)
-            log.info(u'Adding a custom air-by-date naming pattern to your config: {pattern}',
+            log.info('Adding a custom air-by-date naming pattern to your config: {pattern}',
                      {'pattern': app.NAMING_ABD_PATTERN})
         else:
             app.NAMING_ABD_PATTERN = naming.name_abd_presets[0]
@@ -113,19 +115,19 @@ class ConfigMigrator(object):
                     new_season_format = new_season_format.replace('9', '%S')
 
                     log.info(
-                        u'Changed season folder format from {old_season_format} to {new_season_format}, '
-                        u'prepending it to your naming config',
+                        'Changed season folder format from {old_season_format} to {new_season_format}, '
+                        'prepending it to your naming config',
                         {'old_season_format': old_season_format, 'new_season_format': new_season_format}
                     )
                     app.NAMING_PATTERN = new_season_format + os.sep + app.NAMING_PATTERN
 
                 except (TypeError, ValueError):
-                    log.error(u"Can't change {old_season_format} to new season format",
+                    log.error("Can't change {old_season_format} to new season format",
                               {'old_season_format': old_season_format})
 
         # if no shows had it on then don't flatten any shows and don't put season folders in the config
         else:
-            log.info(u"No shows were using season folders before so I'm disabling flattening on all shows")
+            log.info("No shows were using season folders before so I'm disabling flattening on all shows")
 
             # don't flatten any shows at all
             main_db_con.action(b'UPDATE tv_shows SET flatten_folders = 0')
@@ -210,7 +212,7 @@ class ConfigMigrator(object):
                 try:
                     name, url, key, enabled = cur_provider_data.split('|')
                 except ValueError:
-                    log.error(u'Skipping Newznab provider string: {cur_provider_data!r}, incorrect format',
+                    log.error('Skipping Newznab provider string: {cur_provider_data!r}, incorrect format',
                               {'cur_provider_data': cur_provider_data})
                     continue
 
@@ -267,7 +269,7 @@ class ConfigMigrator(object):
             cur_metadata = metadata.split('|')
             # if target has the old number of values, do upgrade
             if len(cur_metadata) == 6:
-                log.info(u'Upgrading {metadata_name} metadata, old value: {value}',
+                log.info('Upgrading {metadata_name} metadata, old value: {value}',
                          {'metadata_name': metadata_name, 'value': metadata})
                 cur_metadata.insert(4, '0')
                 cur_metadata.append('0')
@@ -280,20 +282,20 @@ class ConfigMigrator(object):
                     cur_metadata[4], cur_metadata[3] = cur_metadata[3], '0'
                 # write new format
                 metadata = '|'.join(cur_metadata)
-                log.info(u'Upgrading {metadata_name} metadata, new value: {value}',
+                log.info('Upgrading {metadata_name} metadata, new value: {value}',
                          {'metadata_name': metadata_name, 'value': metadata})
 
             elif len(cur_metadata) == 10:
 
                 metadata = '|'.join(cur_metadata)
-                log.info(u'Keeping {metadata_name} metadata, value: {value}',
+                log.info('Keeping {metadata_name} metadata, value: {value}',
                          {'metadata_name': metadata_name, 'value': metadata})
 
             else:
-                log.error(u'Skipping {metadata_name} metadata {metadata!r}, incorrect format',
+                log.error('Skipping {metadata_name} metadata {metadata!r}, incorrect format',
                           {'metadata_name': metadata_name, 'metadata': metadata})
                 metadata = '0|0|0|0|0|0|0|0|0|0'
-                log.info(u'Setting {metadata_name} metadata, new value: {value}',
+                log.info('Setting {metadata_name} metadata, new value: {value}',
                          {'metadata_name': metadata_name, 'value': metadata})
 
             return metadata
