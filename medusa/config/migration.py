@@ -10,10 +10,12 @@ import re
 
 from medusa import app, db, helpers, logger, naming
 from medusa.config import (
-    check_setting_int,
-    check_setting_str,
     convert_csv_string_to_list,
     naming_sep_type
+)
+from medusa.config.setting import (
+    check_int,
+    check_str,
 )
 from medusa.logger.adapters.style import BraceAdapter
 
@@ -29,7 +31,7 @@ class ConfigMigrator(object):
         self.config_obj = config_obj
 
         # check the version of the config
-        self.config_version = check_setting_int(config_obj, 'General', 'config_version', app.CONFIG_VERSION)
+        self.config_version = check_int(config_obj, 'General', 'config_version', app.CONFIG_VERSION)
         self.expected_config_version = app.CONFIG_VERSION
         self.migration_names = {
             1: 'Custom naming',
@@ -88,7 +90,7 @@ class ConfigMigrator(object):
         log.info("Based on your old settings I'm setting your new naming pattern to: {pattern}",
                  {'pattern': app.NAMING_PATTERN})
 
-        app.NAMING_CUSTOM_ABD = bool(check_setting_int(self.config_obj, 'General', 'naming_dates', 0))
+        app.NAMING_CUSTOM_ABD = bool(check_int(self.config_obj, 'General', 'naming_dates', 0))
 
         if app.NAMING_CUSTOM_ABD:
             app.NAMING_ABD_PATTERN = self._name_to_pattern(True)
@@ -97,7 +99,7 @@ class ConfigMigrator(object):
         else:
             app.NAMING_ABD_PATTERN = naming.name_abd_presets[0]
 
-        app.NAMING_MULTI_EP = int(check_setting_int(self.config_obj, 'General', 'naming_multi_ep_type', 1))
+        app.NAMING_MULTI_EP = int(check_int(self.config_obj, 'General', 'naming_multi_ep_type', 1))
 
         # see if any of their shows used season folders
         main_db_con = db.DBConnection()
@@ -106,7 +108,7 @@ class ConfigMigrator(object):
         # if any shows had season folders on then prepend season folder to the pattern
         if season_folder_shows:
 
-            old_season_format = check_setting_str(self.config_obj, 'General', 'season_folders_format', 'Season %02d')
+            old_season_format = check_str(self.config_obj, 'General', 'season_folders_format', 'Season %02d')
 
             if old_season_format:
                 try:
@@ -137,13 +139,13 @@ class ConfigMigrator(object):
     def _name_to_pattern(self, abd=False):
 
         # get the old settings from the file
-        use_periods = bool(check_setting_int(self.config_obj, 'General', 'naming_use_periods', 0))
-        ep_type = check_setting_int(self.config_obj, 'General', 'naming_ep_type', 0)
-        sep_type = check_setting_int(self.config_obj, 'General', 'naming_sep_type', 0)
-        use_quality = bool(check_setting_int(self.config_obj, 'General', 'naming_quality', 0))
+        use_periods = bool(check_int(self.config_obj, 'General', 'naming_use_periods', 0))
+        ep_type = check_int(self.config_obj, 'General', 'naming_ep_type', 0)
+        sep_type = check_int(self.config_obj, 'General', 'naming_sep_type', 0)
+        use_quality = bool(check_int(self.config_obj, 'General', 'naming_quality', 0))
 
-        use_show_name = bool(check_setting_int(self.config_obj, 'General', 'naming_show_name', 1))
-        use_ep_name = bool(check_setting_int(self.config_obj, 'General', 'naming_ep_name', 1))
+        use_show_name = bool(check_int(self.config_obj, 'General', 'naming_show_name', 1))
+        use_ep_name = bool(check_int(self.config_obj, 'General', 'naming_ep_name', 1))
 
         # make the presets into templates
         naming_ep_type = ('%Sx%0E',
@@ -196,14 +198,14 @@ class ConfigMigrator(object):
     def _migrate_v3(self):
         """Rename omgwtfnzb variables."""
         # get the old settings from the file and store them in the new variable names
-        app.OMGWTFNZBS_USERNAME = check_setting_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_uid', '')
-        app.OMGWTFNZBS_APIKEY = check_setting_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_key', '')
+        app.OMGWTFNZBS_USERNAME = check_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_uid', '')
+        app.OMGWTFNZBS_APIKEY = check_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_key', '')
 
     def _migrate_v4(self):
         """Add default newznab cat_ids and make them unique per provider."""
 
         new_newznab_data = []
-        old_newznab_data = check_setting_str(self.config_obj, 'Newznab', 'newznab_data', '')
+        old_newznab_data = check_str(self.config_obj, 'Newznab', 'newznab_data', '')
 
         if old_newznab_data:
             old_newznab_data_list = old_newznab_data.split('!!!')
@@ -255,15 +257,15 @@ class ConfigMigrator(object):
         Migrate the poster override to just using the banner option for xbmc
         """
 
-        metadata_xbmc = check_setting_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0')
-        metadata_xbmc_12plus = check_setting_str(self.config_obj, 'General', 'metadata_xbmc_12plus', '0|0|0|0|0|0')
-        metadata_mediabrowser = check_setting_str(self.config_obj, 'General', 'metadata_mediabrowser', '0|0|0|0|0|0')
-        metadata_ps3 = check_setting_str(self.config_obj, 'General', 'metadata_ps3', '0|0|0|0|0|0')
-        metadata_wdtv = check_setting_str(self.config_obj, 'General', 'metadata_wdtv', '0|0|0|0|0|0')
-        metadata_tivo = check_setting_str(self.config_obj, 'General', 'metadata_tivo', '0|0|0|0|0|0')
-        metadata_mede8er = check_setting_str(self.config_obj, 'General', 'metadata_mede8er', '0|0|0|0|0|0')
+        metadata_xbmc = check_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0')
+        metadata_xbmc_12plus = check_str(self.config_obj, 'General', 'metadata_xbmc_12plus', '0|0|0|0|0|0')
+        metadata_mediabrowser = check_str(self.config_obj, 'General', 'metadata_mediabrowser', '0|0|0|0|0|0')
+        metadata_ps3 = check_str(self.config_obj, 'General', 'metadata_ps3', '0|0|0|0|0|0')
+        metadata_wdtv = check_str(self.config_obj, 'General', 'metadata_wdtv', '0|0|0|0|0|0')
+        metadata_tivo = check_str(self.config_obj, 'General', 'metadata_tivo', '0|0|0|0|0|0')
+        metadata_mede8er = check_str(self.config_obj, 'General', 'metadata_mede8er', '0|0|0|0|0|0')
 
-        use_banner = bool(check_setting_int(self.config_obj, 'General', 'use_banner', 0))
+        use_banner = bool(check_int(self.config_obj, 'General', 'use_banner', 0))
 
         def _migrate_metadata(metadata, metadata_name, use_banner):
             cur_metadata = metadata.split('|')
@@ -310,29 +312,29 @@ class ConfigMigrator(object):
 
     def _migrate_v6(self):
         """Convert from XBMC to KODI variables."""
-        app.USE_KODI = bool(check_setting_int(self.config_obj, 'XBMC', 'use_xbmc', 0))
-        app.KODI_ALWAYS_ON = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_always_on', 1))
-        app.KODI_NOTIFY_ONSNATCH = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_notify_onsnatch', 0))
-        app.KODI_NOTIFY_ONDOWNLOAD = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_notify_ondownload', 0))
-        app.KODI_NOTIFY_ONSUBTITLEDOWNLOAD = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_notify_onsubtitledownload', 0))
-        app.KODI_UPDATE_LIBRARY = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_update_library', 0))
-        app.KODI_UPDATE_FULL = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_update_full', 0))
-        app.KODI_UPDATE_ONLYFIRST = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_update_onlyfirst', 0))
-        app.KODI_HOST = check_setting_str(self.config_obj, 'XBMC', 'xbmc_host', '')
-        app.KODI_USERNAME = check_setting_str(self.config_obj, 'XBMC', 'xbmc_username', '', censor_log=True)
-        app.KODI_PASSWORD = check_setting_str(self.config_obj, 'XBMC', 'xbmc_password', '', censor_log=True)
-        app.METADATA_KODI = check_setting_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0|0|0|0|0')
-        app.METADATA_KODI_12PLUS = check_setting_str(self.config_obj, 'General', 'metadata_xbmc_12plus', '0|0|0|0|0|0|0|0|0|0')
+        app.USE_KODI = bool(check_int(self.config_obj, 'XBMC', 'use_xbmc', 0))
+        app.KODI_ALWAYS_ON = bool(check_int(self.config_obj, 'XBMC', 'xbmc_always_on', 1))
+        app.KODI_NOTIFY_ONSNATCH = bool(check_int(self.config_obj, 'XBMC', 'xbmc_notify_onsnatch', 0))
+        app.KODI_NOTIFY_ONDOWNLOAD = bool(check_int(self.config_obj, 'XBMC', 'xbmc_notify_ondownload', 0))
+        app.KODI_NOTIFY_ONSUBTITLEDOWNLOAD = bool(check_int(self.config_obj, 'XBMC', 'xbmc_notify_onsubtitledownload', 0))
+        app.KODI_UPDATE_LIBRARY = bool(check_int(self.config_obj, 'XBMC', 'xbmc_update_library', 0))
+        app.KODI_UPDATE_FULL = bool(check_int(self.config_obj, 'XBMC', 'xbmc_update_full', 0))
+        app.KODI_UPDATE_ONLYFIRST = bool(check_int(self.config_obj, 'XBMC', 'xbmc_update_onlyfirst', 0))
+        app.KODI_HOST = check_str(self.config_obj, 'XBMC', 'xbmc_host', '')
+        app.KODI_USERNAME = check_str(self.config_obj, 'XBMC', 'xbmc_username', '', censor_log=True)
+        app.KODI_PASSWORD = check_str(self.config_obj, 'XBMC', 'xbmc_password', '', censor_log=True)
+        app.METADATA_KODI = check_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0|0|0|0|0')
+        app.METADATA_KODI_12PLUS = check_str(self.config_obj, 'General', 'metadata_xbmc_12plus', '0|0|0|0|0|0|0|0|0|0')
 
     def _migrate_v7(self):
         """Update password encryption to version 2."""
         app.ENCRYPTION_VERSION = 2
 
     def _migrate_v8(self):
-        app.PLEX_CLIENT_HOST = check_setting_str(self.config_obj, 'Plex', 'plex_host', '')
-        app.PLEX_SERVER_USERNAME = check_setting_str(self.config_obj, 'Plex', 'plex_username', '', censor_log=True)
-        app.PLEX_SERVER_PASSWORD = check_setting_str(self.config_obj, 'Plex', 'plex_password', '', censor_log=True)
-        app.USE_PLEX_SERVER = bool(check_setting_int(self.config_obj, 'Plex', 'use_plex', 0))
+        app.PLEX_CLIENT_HOST = check_str(self.config_obj, 'Plex', 'plex_host', '')
+        app.PLEX_SERVER_USERNAME = check_str(self.config_obj, 'Plex', 'plex_username', '', censor_log=True)
+        app.PLEX_SERVER_PASSWORD = check_str(self.config_obj, 'Plex', 'plex_password', '', censor_log=True)
+        app.USE_PLEX_SERVER = bool(check_int(self.config_obj, 'Plex', 'use_plex', 0))
 
     def _migrate_v9(self):
         """Add 'enable_manualsearch' setting for providers"""

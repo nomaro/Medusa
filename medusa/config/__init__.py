@@ -23,13 +23,12 @@ import os.path
 import re
 
 from contextlib2 import suppress
-from medusa import app, common, helpers, logger, scheduler
+from medusa import app, helpers, scheduler
 from medusa.helper.common import try_int
-from medusa.helpers.utils import split_and_strip
 from medusa.logger.adapters.style import BraceAdapter
 from medusa.version_checker import CheckVersion
 from requests.compat import urlsplit
-from six import iteritems, string_types, text_type
+from six import string_types, text_type
 from six.moves.urllib.parse import urlunsplit, uses_netloc
 
 log = BraceAdapter(logging.getLogger(__name__))
@@ -564,9 +563,6 @@ def convert_csv_string_to_list(value, delimiter=',', trim=False):
     return value
 
 
-################################################################################
-# Check_setting_int                                                            #
-################################################################################
 def minimax(val, default, low, high):
     """ Return value forced within range """
 
@@ -578,199 +574,3 @@ def minimax(val, default, low, high):
         return high
 
     return val
-
-
-################################################################################
-# Check_setting_int                                                            #
-################################################################################
-def check_setting_int(config, cfg_name, item_name, def_val, silent=True):
-    try:
-        my_val = config[cfg_name][item_name]
-        if str(my_val).lower() == 'true':
-            my_val = 1
-        elif str(my_val).lower() == 'false':
-            my_val = 0
-
-        my_val = int(my_val)
-
-        if str(my_val) == str(None):
-            raise Exception
-    except Exception:
-        my_val = def_val
-        try:
-            config[cfg_name][item_name] = my_val
-        except Exception:
-            config[cfg_name] = {}
-            config[cfg_name][item_name] = my_val
-
-    if not silent:
-        log.debug(u'{item} -> {value}', {u'item': item_name, u'value': my_val})
-
-    return my_val
-
-
-################################################################################
-# Check_setting_bool                                                           #
-################################################################################
-def check_setting_bool(config, cfg_name, item_name, def_val, silent=True):
-    return bool(check_setting_int(config=config, cfg_name=cfg_name, item_name=item_name, def_val=def_val, silent=silent))
-
-
-################################################################################
-# Check_setting_float                                                          #
-################################################################################
-def check_setting_float(config, cfg_name, item_name, def_val, silent=True):
-    try:
-        my_val = float(config[cfg_name][item_name])
-        if str(my_val) == str(None):
-            raise Exception
-    except Exception:
-        my_val = def_val
-        try:
-            config[cfg_name][item_name] = my_val
-        except Exception:
-            config[cfg_name] = {}
-            config[cfg_name][item_name] = my_val
-
-    if not silent:
-        log.debug(u'{item} -> {value}', {u'item': item_name, u'value': my_val})
-
-    return my_val
-
-
-################################################################################
-# Check_setting_str                                                            #
-################################################################################
-def check_setting_str(config, cfg_name, item_name, def_val, silent=True, censor_log=False, valid_values=None):
-    # For passwords you must include the word `password` in the item_name
-    # and add `helpers.encrypt(ITEM_NAME, ENCRYPTION_VERSION)` in save_config()
-    if not censor_log:
-        censor_level = common.privacy_levels['stupid']
-    else:
-        censor_level = common.privacy_levels[censor_log]
-    privacy_level = common.privacy_levels[app.PRIVACY_LEVEL]
-    if bool(item_name.find('password') + 1):
-        encryption_version = app.ENCRYPTION_VERSION
-    else:
-        encryption_version = 0
-
-    try:
-        my_val = helpers.decrypt(config[cfg_name][item_name], encryption_version)
-        if str(my_val) == str(None):
-            raise Exception
-    except Exception:
-        my_val = def_val
-        try:
-            config[cfg_name][item_name] = helpers.encrypt(my_val, encryption_version)
-        except Exception:
-            config[cfg_name] = {}
-            config[cfg_name][item_name] = helpers.encrypt(my_val, encryption_version)
-
-    if privacy_level >= censor_level or (cfg_name, item_name) in iteritems(logger.censored_items):
-        if not item_name.endswith('custom_url'):
-            logger.censored_items[cfg_name, item_name] = my_val
-
-    if not silent:
-        log.debug(u'{item} -> {value}', {u'item': item_name, u'value': my_val})
-
-    if valid_values and my_val not in valid_values:
-        return def_val
-
-    return my_val
-
-
-################################################################################
-# Check_setting_list                                                           #
-################################################################################
-def check_setting_list(config, cfg_name, item_name, default=None, silent=True, censor_log=False, transform=None, transform_default=0, split_value=False):
-    """Check a setting, using the settings section and item name. Expect to return a list."""
-    default = default or []
-
-    if not censor_log:
-        censor_level = common.privacy_levels['stupid']
-    else:
-        censor_level = common.privacy_levels[censor_log]
-    privacy_level = common.privacy_levels[app.PRIVACY_LEVEL]
-
-    try:
-        my_val = config[cfg_name][item_name]
-    except Exception:
-        my_val = default
-        try:
-            config[cfg_name][item_name] = my_val
-        except Exception:
-            config[cfg_name] = {}
-            config[cfg_name][item_name] = my_val
-
-    if privacy_level >= censor_level or (cfg_name, item_name) in iteritems(logger.censored_items):
-        if not item_name.endswith('custom_url'):
-            logger.censored_items[cfg_name, item_name] = my_val
-
-    if split_value:
-        if isinstance(my_val, string_types):
-            my_val = split_and_strip(my_val, split_value)
-
-    # Make an attempt to cast the lists values.
-    if isinstance(my_val, list) and transform:
-        for index, value in enumerate(my_val):
-            try:
-                my_val[index] = transform(value)
-            except ValueError:
-                my_val[index] = transform_default
-
-    if not silent:
-        log.debug(u'{item} -> {value!r}', {u'item': item_name, u'value': my_val})
-
-    return my_val
-
-
-################################################################################
-# Check_setting                                                                #
-################################################################################
-def check_setting(config, section, attr_type, attr, default=None, silent=True, **kwargs):
-    """
-    Check setting from config file
-    """
-    func = {
-        'string': check_setting_str,
-        'int': check_setting_int,
-        'float': check_setting_float,
-        'bool': check_setting_bool,
-        'list': check_setting_list,
-    }
-    return func[attr_type](config, section, attr, default, silent, **kwargs)
-
-
-################################################################################
-# Check_setting                                                                #
-################################################################################
-def check_provider_setting(config, provider, attr_type, attr, default=None, silent=True, **kwargs):
-    """
-    Check setting from config file
-    """
-    name = provider.get_id()
-    section = name.upper()
-    attr = '{name}_{attr}'.format(name=name, attr=attr)
-    return check_setting(config, section, attr_type, attr, default, silent, **kwargs)
-
-
-################################################################################
-# Load Provider Setting                                                        #
-################################################################################
-def load_provider_setting(config, provider, attr_type, attr, default=None, silent=True, **kwargs):
-    if hasattr(provider, attr):
-        value = check_provider_setting(config, provider, attr_type, attr, default, silent, **kwargs)
-        setattr(provider, attr, value)
-
-
-################################################################################
-# Load Provider Setting                                                        #
-################################################################################
-def save_provider_setting(config, provider, attr, **kwargs):
-    if hasattr(provider, attr):
-        section = kwargs.pop('section', provider.get_id().upper())
-        setting = '{name}_{attr}'.format(name=provider.get_id(), attr=attr)
-        value = kwargs.pop('value', getattr(provider, attr))
-        if value in [True, False]:
-            value = int(value)
-        config[section][setting] = value
