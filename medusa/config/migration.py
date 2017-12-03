@@ -22,10 +22,7 @@ log.logger.addHandler(logging.NullHandler())
 
 class ConfigMigrator(object):
     def __init__(self, config_obj):
-        """
-        Initializes a config migrator that can take the config from the version indicated in the config
-        file up to the version required by Medusa
-        """
+        """Migrates config to latest version."""
 
         self.config_obj = config_obj
 
@@ -46,9 +43,7 @@ class ConfigMigrator(object):
         }
 
     def migrate_config(self):
-        """
-        Calls each successive migration until the config is the same version as SB expects
-        """
+        """Migrate through each version until the config is updated."""
 
         if self.config_version > self.expected_config_version:
             logger.log_error_and_exit(
@@ -84,11 +79,8 @@ class ConfigMigrator(object):
             log.info(u'Saving config file to disk')
             app.instance.save_config()
 
-    # Migration v1: Custom naming
     def _migrate_v1(self):
-        """
-        Reads in the old naming settings from your config and generates a new config template from them.
-        """
+        """Create config template from old naming settings."""
 
         app.NAMING_PATTERN = self._name_to_pattern()
         log.info(u"Based on your old settings I'm setting your new naming pattern to: {pattern}",
@@ -196,22 +188,17 @@ class ConfigMigrator(object):
 
         return finalName
 
-    # Migration v2: Dummy migration to sync backup number with config version number
     def _migrate_v2(self):
-        return
+        """Dummy migration to sync backup number with config version number."""
 
-    # Migration v2: Rename omgwtfnzb variables
     def _migrate_v3(self):
-        """
-        Reads in the old naming settings from your config and generates a new config template from them.
-        """
+        """Rename omgwtfnzb variables."""
         # get the old settings from the file and store them in the new variable names
         app.OMGWTFNZBS_USERNAME = check_setting_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_uid', '')
         app.OMGWTFNZBS_APIKEY = check_setting_str(self.config_obj, 'omgwtfnzbs', 'omgwtfnzbs_key', '')
 
-    # Migration v4: Add default newznab cat_ids
     def _migrate_v4(self):
-        """ Update newznab providers so that the category IDs can be set independently via the config """
+        """Add default newznab cat_ids and make them unique per provider."""
 
         new_newznab_data = []
         old_newznab_data = check_setting_str(self.config_obj, 'Newznab', 'newznab_data', '')
@@ -240,9 +227,8 @@ class ConfigMigrator(object):
 
             app.NEWZNAB_DATA = '!!!'.join(new_newznab_data)
 
-    # Migration v5: Metadata upgrade
     def _migrate_v5(self):
-        """Updates metadata values to the new format.
+        """Update metadata values to the new format.
 
         Quick overview of what the upgrade does:
 
@@ -264,7 +250,7 @@ class ConfigMigrator(object):
         new format: 0|0|0|0|0|0|0|0|0|0 -- 10 places
 
         Drop the use of use_banner option.
-        Migrate the poster override to just using the banner option (applies to xbmc only).
+        Migrate the poster override to just using the banner option for xbmc
         """
 
         metadata_xbmc = check_setting_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0')
@@ -320,8 +306,8 @@ class ConfigMigrator(object):
         app.METADATA_TIVO = _migrate_metadata(metadata_tivo, 'TIVO', use_banner)
         app.METADATA_MEDE8ER = _migrate_metadata(metadata_mede8er, 'Mede8er', use_banner)
 
-    # Migration v6: Convert from XBMC to KODI variables
     def _migrate_v6(self):
+        """Convert from XBMC to KODI variables."""
         app.USE_KODI = bool(check_setting_int(self.config_obj, 'XBMC', 'use_xbmc', 0))
         app.KODI_ALWAYS_ON = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_always_on', 1))
         app.KODI_NOTIFY_ONSNATCH = bool(check_setting_int(self.config_obj, 'XBMC', 'xbmc_notify_onsnatch', 0))
@@ -336,8 +322,8 @@ class ConfigMigrator(object):
         app.METADATA_KODI = check_setting_str(self.config_obj, 'General', 'metadata_xbmc', '0|0|0|0|0|0|0|0|0|0')
         app.METADATA_KODI_12PLUS = check_setting_str(self.config_obj, 'General', 'metadata_xbmc_12plus', '0|0|0|0|0|0|0|0|0|0')
 
-    # Migration v6: Use version 2 for password encryption
     def _migrate_v7(self):
+        """Update password encryption to version 2."""
         app.ENCRYPTION_VERSION = 2
 
     def _migrate_v8(self):
@@ -347,21 +333,19 @@ class ConfigMigrator(object):
         app.USE_PLEX_SERVER = bool(check_setting_int(self.config_obj, 'Plex', 'use_plex', 0))
 
     def _migrate_v9(self):
-        """
-        Migrate to config version 9
-        """
-        # Added setting 'enable_manualsearch' for providers (dynamic setting)
-        pass
+        """Add 'enable_manualsearch' setting for providers"""
 
     def _migrate_v10(self):
         """
-        Convert all csv stored items as 'real' lists. ConfigObj provides a way for storing lists. These are saved
+        Convert csv to lists in config.
+
+        ConfigObj provides a way for storing lists. These are saved
         as comma separated values, using this the format documented here:
         http://configobj.readthedocs.io/en/latest/configobj.html?highlight=lists#list-values
         """
 
         def get_providers_from_data(providers_string):
-            """Split the provider string into providers, and get the provider names."""
+            """Split provider string into providers and get the names."""
             return [provider.split('|')[0].upper() for provider in providers_string.split('!!!') if provider]
 
         def make_id(name):
