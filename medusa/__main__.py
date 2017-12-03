@@ -65,15 +65,39 @@ from configobj import ConfigObj
 from six import text_type
 
 from . import (
-    app, auto_post_processor, cache, db, event_queue, exception_handler,
-    helpers, logger as app_logger, metadata, name_cache, naming, network_timezones, providers,
-    scheduler, show_queue, show_updater, subtitles, torrent_checker, trakt_checker, version_checker
+    app,
+    auto_post_processor,
+    cache,
+    db,
+    event_queue,
+    exception_handler,
+    helpers,
+    logger as app_logger,
+    metadata,
+    name_cache,
+    naming,
+    network_timezones,
+    providers,
+    scheduler,
+    show_queue,
+    show_updater,
+    subtitles,
+    torrent_checker,
+    trakt_checker,
+    version_checker
 )
 from .common import SD, SKIPPED, WANTED
 from .config import (
-    CheckSection, ConfigMigrator, check_setting_bool, check_setting_float, check_setting_int, check_setting_list,
-    check_setting_str, load_provider_setting, save_provider_setting
+    CheckSection,
+    check_setting_bool,
+    check_setting_float,
+    check_setting_int,
+    check_setting_list,
+    check_setting_str,
+    load_provider_setting,
+    save_provider_setting,
 )
+from .config.migration import ConfigMigrator
 from .databases import cache_db, failed_db, main_db
 from .event_queue import Events
 from .indexers.indexer_config import INDEXER_TVDBV2, INDEXER_TVMAZE
