@@ -17,7 +17,10 @@ from medusa.helpers import (
     is_media_file,
 )
 from medusa.logger.adapters.style import BraceAdapter
+
 from requests.exceptions import RequestException
+
+from six import iteritems
 
 log = BraceAdapter(logging.getLogger(__name__))
 log.logger.addHandler(logging.NullHandler())
@@ -27,7 +30,7 @@ def read_torrent_status(torrent_data):
     """Read torrent status from Deluge and Deluged client."""
     found_torrents = False
     info_hash_to_remove = []
-    for torrent in torrent_data.items():
+    for torrent in list(iteritems(torrent_data)):
         info_hash = str(torrent[0])
         details = torrent[1]
         if not is_info_hash_in_history(info_hash):
