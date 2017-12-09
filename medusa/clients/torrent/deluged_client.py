@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 import logging
 from base64 import b64encode
+from builtins import object
 
 from medusa import app
 from medusa.clients.torrent.deluge_client import read_torrent_status
