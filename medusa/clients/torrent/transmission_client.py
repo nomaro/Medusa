@@ -9,7 +9,6 @@ import logging
 import os
 import re
 from base64 import b64encode
-from builtins import str
 from datetime import datetime, timedelta
 
 from medusa import app
@@ -24,6 +23,7 @@ from medusa.logger.adapters.style import BraceAdapter
 
 from requests.compat import urljoin
 
+from six import text_type as str
 
 log = BraceAdapter(logging.getLogger(__name__))
 log.logger.addHandler(logging.NullHandler())

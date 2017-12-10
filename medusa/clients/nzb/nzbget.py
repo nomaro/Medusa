@@ -5,16 +5,15 @@ from __future__ import unicode_literals
 import datetime
 import logging
 from base64 import standard_b64encode
-from builtins import str
 
 from medusa import app
 from medusa.common import Quality
 from medusa.helper.common import try_int
 from medusa.logger.adapters.style import BraceAdapter
 
+from six import text_type as str
 from six.moves.http_client import socket
 from six.moves.xmlrpc_client import ProtocolError, ServerProxy
-
 
 log = BraceAdapter(logging.getLogger(__name__))
 log.logger.addHandler(logging.NullHandler())

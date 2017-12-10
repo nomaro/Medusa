@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import json
 import logging
 from base64 import b64encode
-from builtins import str
 
 from medusa import app
 from medusa.clients.torrent.generic import GenericClient
@@ -22,6 +21,7 @@ from medusa.logger.adapters.style import BraceAdapter
 from requests.exceptions import RequestException
 
 from six import iteritems
+from six import text_type as str
 
 log = BraceAdapter(logging.getLogger(__name__))
 log.logger.addHandler(logging.NullHandler())
